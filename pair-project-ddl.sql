@@ -20,7 +20,7 @@ CREATE TABLE `products` (
   `category_id` INT NOT NULL,
   `name` VARCHAR(200) NOT NULL,
   `stock` INT NOT NULL DEFAULT 0,
-  `price` DECIMAL(10,2) NOT NULL,
+  `price` BIGINT NOT NULL,
   `created_at` TIMESTAMP DEFAULT (CURRENT_TIMESTAMP),
   `updated_at` TIMESTAMP DEFAULT (CURRENT_TIMESTAMP) ON UPDATE CURRENT_TIMESTAMP
 );
@@ -28,7 +28,7 @@ CREATE TABLE `products` (
 CREATE TABLE `add_ons` (
   `id` INT PRIMARY KEY AUTO_INCREMENT,
   `name` VARCHAR(200) NOT NULL,
-  `price` DECIMAL(10,2) NOT NULL,
+  `price` BIGINT NOT NULL,
   `created_at` TIMESTAMP DEFAULT (CURRENT_TIMESTAMP),
   `updated_at` TIMESTAMP DEFAULT (CURRENT_TIMESTAMP) ON UPDATE CURRENT_TIMESTAMP
 );
@@ -43,8 +43,8 @@ CREATE TABLE `product_add_ons` (
 CREATE TABLE `orders` (
   `id` INT PRIMARY KEY AUTO_INCREMENT,
   `user_id` INT NOT NULL,
-  `status` ENUM ('Pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled') NOT NULL DEFAULT 'Pending',
-  `total_amount` DECIMAL(10,2) NOT NULL,
+  `status` ENUM ('pending', 'preparing', 'ready', 'completed', 'cancelled') NOT NULL DEFAULT 'Pending',
+  `total_amount` BIGINT NOT NULL,
   `created_at` TIMESTAMP DEFAULT (CURRENT_TIMESTAMP),
   `updated_at` TIMESTAMP DEFAULT (CURRENT_TIMESTAMP) ON UPDATE CURRENT_TIMESTAMP
 );
@@ -53,20 +53,14 @@ CREATE TABLE `order_items` (
   `id` INT PRIMARY KEY AUTO_INCREMENT,
   `order_id` INT NOT NULL,
   `product_id` INT NOT NULL,
+  `add_on_id` INT,
   `quantity` INT NOT NULL DEFAULT 1,
-  `unit_price` DECIMAL(10,2) NOT NULL,
-  `subtotal` DECIMAL(10,2) NOT NULL,
+  `unit_price` BIGINT NOT NULL,
+  `subtotal` BIGINT NOT NULL,
   `note` VARCHAR(255),
   `created_at` TIMESTAMP DEFAULT (CURRENT_TIMESTAMP)
 );
 
-CREATE TABLE `order_item_add_on` (
-  `id` INT PRIMARY KEY AUTO_INCREMENT,
-  `order_item_id` INT NOT NULL,
-  `add_on_id` INT NOT NULL,
-  `price` DECIMAL(10,2) NOT NULL,
-  `created_at` TIMESTAMP DEFAULT (CURRENT_TIMESTAMP)
-);
 
 CREATE TABLE `payments_method` (
   `id` INT PRIMARY KEY AUTO_INCREMENT,
@@ -76,7 +70,7 @@ CREATE TABLE `payments_method` (
 CREATE TABLE `payments` (
   `id` INT PRIMARY KEY AUTO_INCREMENT,
   `order_id` INT UNIQUE NOT NULL,
-  `amount` DECIMAL(10,2) NOT NULL,
+  `amount` BIGINT NOT NULL,
   `payment_method_id` INT NOT NULL,
   `status` ENUM ('Pending', 'Paid', 'Failed', 'Refunded') NOT NULL DEFAULT 'Pending',
   `paid_at` TIMESTAMP,
@@ -100,6 +94,6 @@ ALTER TABLE `product_add_ons` ADD CONSTRAINT `fk_product_addons` FOREIGN KEY (`p
 
 ALTER TABLE `product_add_ons` ADD CONSTRAINT `fk_addons` FOREIGN KEY (`add_on_id`) REFERENCES `add_ons` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
-ALTER TABLE `order_item_add_on` ADD CONSTRAINT `fk_orderitem_orderaddon` FOREIGN KEY (`order_item_id`) REFERENCES `order_items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `order_items` ADD CONSTRAINT `fk_order_items_addons` FOREIGN KEY (`add_on_id`) REFERENCES `add_ons` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
-ALTER TABLE `order_item_add_on` ADD CONSTRAINT `fk_orderaddon` FOREIGN KEY (`add_on_id`) REFERENCES `add_ons` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `product_add_ons` ADD CONSTRAINT `unique_product_addon` UNIQUE (`product_id`, `add_on_id`);
