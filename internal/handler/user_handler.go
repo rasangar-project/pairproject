@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"database/sql"
 	"fmt"
-	"go/scanner"
 	"os"
+	"pairproject/internal/model"
+	"pairproject/internal/repository"
 	"strings"
 )
 
 func Run(db *sql.DB) {
 	scanner := bufio.NewScanner(os.Stdin)
-
+	// tampilan awal
 	for {
 		fmt.Println("\n============================")
 		fmt.Println("BEVERAGE (TEAM 5)")
@@ -51,15 +52,14 @@ func adminAuthMenu(scanner *bufio.Scanner, db *sql.DB) {
 	scanner.Scan()
 	password := strings.TrimSpace(scanner.Text())
 
-	// bagian Query (sek nanti ya, wkwk)
-
-	// simulasi login (buat ngetes)
-	if email == "admin" && password == "admin" {
-		fmt.Println("Login berhasil! Selamat Datang!")
-		adminAuthMenu(scanner, db)
-	} else {
-		fmt.Println("Email atau Password salah! bukan Admin!")
+	// Panggil Repo
+	err := repository.AdminLogin(db, email, password)
+	if err != nil {
+		fmt.Println("error", err.Error())
+		return
 	}
+	fmt.Println("Login Berhasil ! Selamat Datang Admin!")
+	adminMenu(scanner, db) //Masuk ke Dashboard Admin
 
 }
 
@@ -88,11 +88,15 @@ func customerAuthMenu(scanner *bufio.Scanner, db *sql.DB) {
 
 }
 
-func customerRegister() {
+// register customer
+func customerRegister(scanner *bufio.Scanner, db *sql.DB) {
 	fmt.Println("--- Register Customer ---")
 	fmt.Print("Nama: ")
 	scanner.Scan()
 	name := strings.TrimSpace(scanner.Text())
+	fmt.Print("Email: ")
+	scanner.Scan()
+	email := strings.TrimSpace(scanner.Text())
 	fmt.Print("Password: ")
 	scanner.Scan()
 	password := strings.TrimSpace(scanner.Text())
@@ -102,11 +106,24 @@ func customerRegister() {
 	fmt.Print("Address: ")
 	scanner.Scan()
 	address := strings.TrimSpace(scanner.Text())
+	// narik model, user.go
+	newUser := model.User{
+		Name:     name,
+		Email:    email,
+		Password: password,
+		Phone:    phone,
+		Address:  address,
+	}
 
-	// konek DB
+	err := repository.CustomerRegister(db, newUser)
+	if err != nil {
+		fmt.Println("Gagal register:", err)
+		return
+	}
 }
 
-func customerLogin() {
+// login customer
+func customerLogin(scanner *bufio.Scanner, db *sql.DB) {
 	fmt.Println("\n--- Login Customer ---")
 	fmt.Print("Email: ")
 	scanner.Scan()
@@ -115,14 +132,19 @@ func customerLogin() {
 	scanner.Scan()
 	password := strings.TrimSpace(scanner.Text())
 
-	// konek DB
+	// panggil repo
+	customerID, err := repository.CustomerLogin(db, email, password)
+	if err != nil {
+		fmt.Println("Error:", err.Error())
+		return
+	}
 
-	// simulasi user
-	customerID := 1
-	customerLogin(scanner, db, customerID)
+	fmt.Printf("Login berhasil! Selamat Datang (ID: %d)\n", customerID)
+	customerMenu(scanner, db, customerID)
 }
 
-func adminMenu(scanner bufio.Scanner, db *sql.DB) {
+// menu dashboard admin
+func adminMenu(scanner *bufio.Scanner, db *sql.DB) {
 	for {
 		fmt.Println("\n=== ADMIN DASHBOARD ===")
 		fmt.Println("1. Create Users")
@@ -135,17 +157,60 @@ func adminMenu(scanner bufio.Scanner, db *sql.DB) {
 		fmt.Println("0. LogOut")
 		fmt.Print("Pilih menu Admin (0-7): ")
 
+		scanner.Scan()
+		input := strings.TrimSpace(scanner.Text())
+
+		// hasilnya jika dipilih angka (belom gw bikin logicnya)
+		switch input {
+		case "1":
+			fmt.Println("\nCreate User")
+		case "2":
+			fmt.Println("\nShows User")
+		case "3":
+			fmt.Println("\nReport Products")
+		case "4":
+			fmt.Println("\nShow Products")
+		case "5":
+			fmt.Println("\nShow Orders")
+		case "6":
+			fmt.Println("\nReport Revenue")
+		case "7":
+			fmt.Println("\nReport Product Terlaris")
+		case "0":
+			fmt.Println("\nLogout")
+			return
+		default:
+			fmt.Println("\nInput Salah!")
+		}
 	}
 }
 
-func customerMenu(scanner bufio.Scanner, db *sql.DB) {
+// menu dashboard customer
+func customerMenu(scanner *bufio.Scanner, db *sql.DB, customerID int) {
 	for {
 		fmt.Println("\n--- CUSTOMER DASHBOARD ---")
 		fmt.Println("1. Make Orders")
-		fmt.Println("2. Check Menus")
+		fmt.Println("2. Check Menu")
 		fmt.Println("3. Check Order Status")
 		fmt.Println("0. Back")
 		fmt.Print("Pilih menu Customer (0-3): ")
 
+		scanner.Scan()
+		input := strings.TrimSpace(scanner.Text())
+
+		// logic nya belom gw bikin juga :D
+		switch input {
+		case "1":
+			fmt.Println("/nMake Orders")
+		case "2":
+			fmt.Println("/nCheck Menu")
+		case "3":
+			fmt.Println("/nCheck Order Status")
+		case "0":
+			fmt.Println("/nBack")
+			return
+		default:
+			fmt.Println("Input Salah!")
+		}
 	}
 }

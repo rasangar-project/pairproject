@@ -1,48 +1,41 @@
 package repository
 
 import (
-	"GamingStore/internal/model"
 	"database/sql"
+	"errors"
 	"fmt"
+	"pairproject/internal/model"
 )
 
+func AdminLogin(db *sql.DB, email, password string) error {
+	// DB querry (belom nyambung)
 
-func CreateCustomer(db *sql.DB, name string, email string, phone string) error {
-		// The ? placeholders protect against SQL injection
-		query := "INSERT INTO customers(name, email, phone) VALUES(?, ?, ?)"
-
-		// db.Exec is used for queries that don't return rows (INSERT, UPDATE, DELETE)
-		_, err := db.Exec(query, name, email, phone)
-		if err != nil {
-			return fmt.Errorf("failed to insert customer:%w",err)
-		}
-		fmt.Printf("Successfully added customer: %s\n", name)
+	// tes dulu
+	if email == "admin" && password == "admin" {
 		return nil
 	}
-func ListCustomer(db *sql.DB) ([]model.Customer,error){
-	query := "SELECT id, name, email, phone, created_at from customers"
+	return errors.New("email atau password admin salah")
+}
 
-	rows, err := db.Query(query)
+func CustomerRegister(db *sql.DB, user model.User) error {
+	// The ? placeholders protect against SQL injection
+	query := "INSERT INTO users(name, email, password, phone, address,user_type) VALUES(?, ?, ?,?,?,'customer')"
+
+	// Query pakai model User
+	_, err := db.Exec(query, user.Name, user.Password, user.Password, user.Phone, user.Address)
 	if err != nil {
-		return nil, fmt.Errorf("query failed: %w", err)
+		return fmt.Errorf("failed to insert customer:%w", err)
 	}
-	defer rows.Close()
-	var customers []model.Customer
-	
-	for rows.Next() {
-		var c model.Customer
+	// simulasi sukses
+	fmt.Printf("Successfully added customer: %s\n", user.Name)
+	return nil
+}
 
-		
-		err := rows.Scan(&c.ID, &c.Name, &c.Email, &c.Phone, &c.Created_at)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
-		}
+func CustomerLogin(db *sql.DB, email, password string) (int, error) {
+	// select Querry konek DB (belum bikin)
 
-		customers = append(customers, c)
+	if email == "customer" && password == "customer" {
+		return 1, nil
 	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-	return customers, nil
-
+	return 0, errors.New("email / pass customer salah")
 }
