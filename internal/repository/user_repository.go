@@ -7,6 +7,9 @@ import (
 	"pairproject/internal/model"
 )
 
+// ============================================================================
+// USER MANAGEMENT
+// ============================================================================
 func UserLogin(db *sql.DB, email, password string) (int, string, error) {
 	var id int
 	var UserType string
@@ -130,4 +133,67 @@ func DeleteUser(db *sql.DB, id int) error {
 	}
 
 	return nil
+}
+
+// ============================================================================
+// PRODUCT MANAGEMENT
+// ============================================================================
+// GetCategories mengambil daftar kategori untuk ditampilkan ke Admin
+func GetCategories(db *sql.DB) ([]model.Category, error) {
+	rows, err := db.Query("SELECT id, name FROM categories")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []model.Category
+	for rows.Next() {
+		var c model.Category
+		err := rows.Scan(&c.ID, &c.Name)
+		if err != nil {
+			return nil, err
+		}
+		categories = append(categories, c)
+	}
+	return categories, nil
+}
+
+// InsertProduct mengeksekusi query pembuatan produk baru
+func InsertProduct(db *sql.DB, p model.Product) error {
+	query := "INSERT INTO products (category_id, name, stock, price) VALUES (?, ?, ?, ?)"
+	_, err := db.Exec(query, p.CategoryID, p.Name, p.Stock, p.Price)
+	return err
+}
+
+// ListProducts mengambil semua data produk beserta nama kategorinya
+func ListProducts(db *sql.DB) ([]model.Product, error) {
+	query := `
+		SELECT p.id, c.name AS category_name, p.name, p.price, p.stock 
+		FROM products p 
+		JOIN categories c ON p.category_id = c.id
+		ORDER BY p.id ASC
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("gagal mengeksekusi query list produk: %w", err)
+	}
+	defer rows.Close()
+
+	var products []model.Product
+	for rows.Next() {
+		var p model.Product
+		// Urutan Scan harus sama persis dengan urutan kolom di query SELECT
+		err := rows.Scan(&p.ID, &p.CategoryName, &p.Name, &p.Price, &p.Stock)
+		if err != nil {
+			return nil, fmt.Errorf("gagal membaca baris data produk: %w", err)
+		}
+		products = append(products, p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return products, nil
 }

@@ -307,11 +307,112 @@ func adminMenu(scanner *bufio.Scanner, db *sql.DB) {
 			}
 
 		case "5":
-			fmt.Println("\nShow Orders")
+			fmt.Println("\nCreate New Product")
+
+			categories, err := repository.GetCategories(db)
+			if err != nil {
+				fmt.Println("Failed to load list category:", err)
+				continue
+			}
+			if len(categories) == 0 {
+				fmt.Println("no category on db")
+				continue
+			}
+			fmt.Println("Category List:")
+			for _, c := range categories {
+				fmt.Printf("[%d] %s\n", c.ID, c.Name)
+			}
+
+			// input CLI
+			fmt.Print("\nChoose Category ID: ")
+			scanner.Scan()
+			catIDstr := strings.TrimSpace(scanner.Text())
+			catID, _ := strconv.Atoi(catIDstr)
+
+			var isCategoryValid bool
+			for _, c := range categories {
+				if c.ID == catID {
+					isCategoryValid = true
+					break
+				}
+			}
+			if !isCategoryValid {
+				fmt.Println("Error: Category ID not listed! Please select from the list above.")
+				continue //ngulangi menu tanpa nanya product name
+			}
+
+			fmt.Print("Product's Name: ")
+			scanner.Scan()
+			prodName := strings.TrimSpace(scanner.Text())
+
+			fmt.Print("Product's Price (Rp): ")
+			scanner.Scan()
+			priceStr := strings.TrimSpace(scanner.Text())
+			price, err := strconv.ParseInt(priceStr, 10, 64)
+			if err != nil {
+				fmt.Println("Error: The price must be a number without periods or commas!")
+				continue
+			}
+
+			fmt.Print("Initial Stock Quantity: ")
+			scanner.Scan()
+			stockStr := strings.TrimSpace(scanner.Text())
+			stock, _ := strconv.Atoi(stockStr)
+
+			// bungkus ke model
+			newProduct := model.Product{
+				CategoryID: catID,
+				Name:       prodName,
+				Price:      price,
+				Stock:      stock,
+			}
+			// lempar ke usecase
+			err = usecase.CreateProductUsecase(db, newProduct)
+			if err != nil {
+				fmt.Println("Failed to Create Product:", err)
+			} else {
+				fmt.Printf("Succsessfully added '%s' Product on the Menu!\n", prodName)
+			}
+
 		case "6":
-			fmt.Println("\nReport Revenue")
+			fmt.Println("\nList all product")
+			// manggil ListProducts repo
+			products, err := repository.ListProducts(db)
+			if err != nil {
+				fmt.Println("Failed to take Product:", err)
+				continue
+			}
+			// cek apakah isi tabel ksong
+			if len(products) == 0 {
+				fmt.Println("No product list on DB")
+			} else {
+				// bikin tabel
+				fmt.Printf("%-5s | %-20s | %-30s | %-15s | %-5s\n", "ID", "Kategori", "Nama Produk", "Harga (Rp)", "Stok")
+				fmt.Println(strings.Repeat("=", 90))
+				// loop untuk cetak setiap product
+				for _, p := range products {
+					// Memberikan penanda khusus jika stok habis
+					stockStatus := strconv.Itoa(p.Stock)
+					if p.Stock <= 0 {
+						stockStatus = "EMPTY"
+					}
+
+					// Mencetak baris data (%d digunakan untuk int/int64, %s untuk string)
+					fmt.Printf("%-5d | %-20s | %-30s | %-15d | %-5s\n", p.ID, p.CategoryName, p.Name, p.Price, stockStatus)
+				}
+			}
 		case "7":
-			fmt.Println("\nReport Product Terlaris")
+			fmt.Println("\nUpdate product data")
+		case "8":
+			fmt.Println("\nDelete Product")
+		case "9":
+			fmt.Println("\nList all order")
+		case "10":
+			fmt.Println("\nReport revenue for all products")
+		case "11":
+			fmt.Println("\nList product with the highest sales")
+		case "12":
+			fmt.Println("\nReport user with most frequent order")
 		case "0":
 			fmt.Println("\nLogging out...")
 			return

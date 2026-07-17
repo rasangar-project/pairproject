@@ -9,3 +9,17 @@ type User struct {
 	Address  string
 	UserType string
 }
+
+type Category struct {
+	ID   int
+	Name string
+}
+
+type Product struct {
+	ID           int
+	CategoryID   int
+	CategoryName string
+	Name         string
+	Stock        int
+	Price        int64
+}
