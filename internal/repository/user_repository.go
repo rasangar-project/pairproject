@@ -93,17 +93,40 @@ func UpdateUser(db *sql.DB, id int, name, phone, address, userType string) error
 
 	result, err := db.Exec(query, name, phone, address, userType, id)
 	if err != nil {
-		return fmt.Errorf("gagal mengeksekusi query update: %w", err)
+		return fmt.Errorf("failed to do query update: %w", err)
 	}
 
 	// Mengecek apakah ada baris data yang berubah (ID ditemukan)
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("gagal mengecek status update: %w", err)
+		return fmt.Errorf("failed to check status update: %w", err)
 	}
 
 	if rowsAffected == 0 {
 		return errors.New("user dengan ID tersebut tidak ditemukan")
+	}
+
+	return nil
+}
+
+// DeleteUser menghapus data user dari database berdasarkan ID
+func DeleteUser(db *sql.DB, id int) error {
+	query := "DELETE FROM users WHERE id = ?"
+
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("Failed to delete query: %w", err)
+	}
+
+	// Mengecek apakah ada baris data yang berhasil dihapus
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check delete status: %w", err)
+	}
+
+	// Jika rowsAffected == 0, artinya ID tersebut tidak ada di database
+	if rowsAffected == 0 {
+		return errors.New("user ID not found")
 	}
 
 	return nil
