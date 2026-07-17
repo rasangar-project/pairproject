@@ -210,7 +210,25 @@ func adminMenu(scanner *bufio.Scanner, db *sql.DB) {
 			}
 
 		case "2":
-			fmt.Println("\nShows User")
+			fmt.Println("\nShow List All User Accounts")
+			users, err := repository.ShowUsers(db)
+			if err != nil {
+				fmt.Println("Failed to retrieve user data", err)
+				continue
+			}
+			// cek db
+			if len(users) == 0 {
+				fmt.Println("No Database Users found.")
+			} else {
+				// bikin header tabel
+				fmt.Printf("%-5s | %-20s | %-30s | %-15s | %-10s\n", "ID", "Nama", "Email", "Phone", "Role")
+				// garis header nya
+				fmt.Println(strings.Repeat("=", 90))
+				// loop data untuk cetak setiap data users
+				for _, u := range users {
+					fmt.Printf("%-5d | %-20s | %-30s | %-15s | %-10s\n", u.ID, u.Name, u.Email, u.Phone, u.UserType)
+				}
+			}
 
 		case "3":
 			fmt.Println("\nReport Products")

@@ -62,3 +62,27 @@ func IsEmailExists(db *sql.DB, email string) bool {
 
 	return exists
 }
+
+// ShowUsers mengambil semua data user dari database
+func ShowUsers(db *sql.DB) ([]model.User, error) {
+	query := "SELECT id, name, email, phone, user_type FROM users"
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load query: %w", err)
+	}
+	defer rows.Close()
+
+	var users []model.User
+	for rows.Next() {
+		var u model.User
+		// Ingat: Urutan Scan harus sama persis dengan urutan SELECT di query
+		err := rows.Scan(&u.ID, &u.Name, &u.Email, &u.Phone, &u.UserType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan data: %w", err)
+		}
+		users = append(users, u)
+	}
+
+	return users, nil
+}
