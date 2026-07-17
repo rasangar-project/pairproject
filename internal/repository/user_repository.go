@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"pairproject/internal/model"
 )
 
@@ -274,4 +275,270 @@ func GetMostFrequentUsers(db *sql.DB) ([]model.UserOrderReport, error) {
 	}
 
 	return reports, nil
+}
+
+
+func FetchingProducts (db *sql.DB) ([]model.Product, error) {
+	query := "SELECT id,category_id, name, stock, price from products"
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+
+	defer rows.Close()
+	var products []model.Product
+	
+	for rows.Next() {
+		var p model.Product
+
+		
+		err := rows.Scan(&p.ID, &p.CategoryID, &p.Name, &p.Stock, &p.Price )
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		products = append(products, p)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return products, nil
+}
+
+
+func CheckValidProductId(db *sql.DB, id int) bool {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM products WHERE id = ?)`
+
+	err := db.QueryRow(query, id).Scan(&exists)
+	if err != nil {
+		log.Fatal(err)
+		return false
+	}
+	return exists
+}
+
+func FetchProductAddOn(db *sql.DB, product_id int) ([]model.Add_on, error) {
+	query := "select a.id as add_ons_id, a.name as add_ons_name, a.price from product_add_ons as pa Join add_ons as a ON a.id = pa.add_on_id Join products as p on p.id = pa.product_id where pa.product_id = ?; "
+
+	rows, err := db.Query(query, product_id)
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+
+	defer rows.Close()
+	var add_ons []model.Add_on
+	
+	for rows.Next() {
+		var a model.Add_on
+
+		
+		err := rows.Scan(&a.ID, &a.Name, &a.Price )
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		add_ons = append(add_ons, a)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return add_ons, nil	
+}
+
+
+
+func ChecksValidAddOn(db *sql.DB, product_id int, add_on_id int) bool {
+	var connected bool
+	query := `SELECT EXISTS(SELECT 1 FROM product_add_ons WHERE product_id = ? AND add_on_id = ?)`
+
+	err := db.QueryRow(query, product_id, add_on_id).Scan(&connected)
+	if err != nil {
+		log.Fatal(err)
+		return connected
+	}
+	return connected
+}
+
+
+func GetProductPrice (db *sql.DB, product_id int) (int, error) {
+	query := "SELECT price FROM products WHERE id = ?"
+	var price int
+	err := db.QueryRow(query, product_id).Scan(&price)
+	if err != nil {
+		return 0, err
+	}
+	return price, nil
+}
+func GetAddOnPrice(db *sql.DB, add_on_id int) (int, error) {
+	query := "SELECT price FROM add_ons WHERE id = ?"
+	var price int
+	err := db.QueryRow(query, add_on_id).Scan(&price)
+	if err != nil {
+		return 0, err
+	}
+	return price, nil
+}
+
+func FetchPaymentMethod(db *sql.DB)([]model.Payments_method, error) {
+	query := "SELECT * FROM payments_method"
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+
+	defer rows.Close()
+	var payments_method []model.Payments_method
+	
+	for rows.Next() {
+		var p model.Payments_method
+
+		
+		err := rows.Scan(&p.ID, &p.Name )
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		payments_method = append(payments_method, p)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return payments_method, nil	
+}
+
+func CheckPayMethodValid (db *sql.DB, pay_id int) bool {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM payments_method WHERE id = ?)`
+
+	err := db.QueryRow(query, pay_id).Scan(&exists)
+	if err != nil {
+		log.Fatal(err)
+		return exists
+	}
+	return exists
+}
+
+
+func GetProductName (db *sql.DB, product_id int) (string, error) {
+	query := "SELECT name FROM products WHERE id = ?"
+	var product_name string
+	err := db.QueryRow(query, product_id).Scan(&product_name)
+	if err != nil {
+		return "", err
+	}
+	return product_name, nil
+}
+
+func GetAddOnName(db *sql.DB, add_onId int)(string, error) {
+	query := "SELECT name FROM add_ons WHERE id = ?"
+	var add_onName string
+	err := db.QueryRow(query, add_onId).Scan(&add_onName)
+	if err != nil {
+		return "", err
+	}
+	return add_onName, nil
+}
+
+
+func CreatingOrdersDB(db *sql.DB, customerID int, totalAmount int, paymentMethod int, order_items []model.Order_items ) error{
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+
+	defer tx.Rollback()
+
+	orderQuery := `INSERT INTO orders (user_id, status, total_amount) VALUES (?, ?, ?)`
+	orderResult, err := tx.Exec(orderQuery, customerID, "completed", totalAmount)
+	if err != nil {
+		return fmt.Errorf("failed to insert order: %w", err)
+	}
+
+	orderID64, err := orderResult.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("failed to get last insert ID: %w", err)
+	}
+	orderID := int(orderID64) 
+
+	itemQuery := `INSERT INTO order_items (order_id, product_id, add_on_id, quantity, unit_price, subtotal, note) 
+	              VALUES (?, ?, ?, ?, ?, ?, ?)`
+	updateStockQuery := `UPDATE products Set stock = stock - ? WHERE id = ? AND stock >= ?`
+
+	
+	for _, item := range order_items {
+		if item.Add_on_id == 0 {
+			_, err := tx.Exec(itemQuery, orderID, item.Product_id, nil, item.Quantity, item.Unit_price, item.Subtotal, item.Note)
+			if err != nil {
+			return fmt.Errorf("failed to insert order item for product %d: %w", item.Product_id, err)
+			}
+		} else {
+		_, err := tx.Exec(itemQuery, orderID, item.Product_id, item.Add_on_id, item.Quantity, item.Unit_price, item.Subtotal, item.Note)
+		if err != nil {
+			return fmt.Errorf("failed to insert order item for product %d: %w", item.Product_id, err)
+			}
+		}
+		_, err := tx.Exec(updateStockQuery, item.Quantity, item.Product_id, item.Quantity)
+		if err != nil {
+			return fmt.Errorf("failed to execute stock update: %w",err)
+		}
+	}
+
+	paymentQuery := `INSERT INTO payments (order_id, amount, payment_method_id, status, paid_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`
+	_, err = tx.Exec(paymentQuery, orderID, totalAmount, paymentMethod, "paid")
+	if err != nil {
+		return fmt.Errorf("failed to create payment record: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	fmt.Println("Order created successfully!")
+	return nil
+}
+
+
+
+
+func GetUserHistory (db *sql.DB, customerID int) ([]model.UserHistory, error) {
+	query := "select o.id as order_id, p.name as product_name, oi.quantity as quantity, oi.subtotal as subtotal from order_items as oi join orders o ON o.id = oi.order_id join products p on p.id = oi.product_id left join add_ons a ON oi.add_on_id = a.id where o.user_id = ?;"
+
+	rows, err := db.Query(query, customerID)
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+
+	defer rows.Close()
+	var userHistory []model.UserHistory
+	
+	for rows.Next() {
+		var u model.UserHistory
+
+		
+		err := rows.Scan(&u.OrderID, &u.ProductName, &u.Quantity, &u.Subtotal )
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		userHistory = append(userHistory, u)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return userHistory, nil	
+}
+
+
+func GenerateTotalRevenue(db *sql.DB)(model.TotalRevenue , error) {
+	query := "SELECT SUM(o.total_amount) AS total_revenue FROM orders o JOIN payments p ON o.id = p.order_id WHERE p.status = 'Paid'"
+	var revenue model.TotalRevenue
+	err := db.QueryRow(query).Scan(&revenue.Revenue)
+	if err != nil {
+		return revenue, err
+	}
+	return revenue, nil
 }
