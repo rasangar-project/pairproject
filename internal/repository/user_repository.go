@@ -219,3 +219,25 @@ func UpdateProduct(db *sql.DB, id, categoryID int, name string, price int64, sto
 
 	return nil
 }
+
+func DeleteProduct(db *sql.DB, id int) error {
+	query := "DELETE FROM products WHERE id = ?"
+
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("Failed to delete query: %w", err)
+	}
+
+	// Mengecek apakah ada baris data yang berhasil dihapus
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check delete status: %w", err)
+	}
+
+	// Jika rowsAffected == 0, artinya ID tersebut tidak ada di database
+	if rowsAffected == 0 {
+		return errors.New("user ID not found")
+	}
+
+	return nil
+}

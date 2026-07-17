@@ -477,6 +477,32 @@ func adminMenu(scanner *bufio.Scanner, db *sql.DB) {
 			}
 		case "8":
 			fmt.Println("\nDelete Product")
+			fmt.Print("Enter Product ID to be Deleted: ")
+			scanner.Scan()
+			idStr := strings.TrimSpace(scanner.Text())
+
+			//  string id jadi int
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				fmt.Println("Error: ID must contain numbers!")
+				continue //ngulang menu
+			}
+			// konfirmasi sebelum delete
+			fmt.Printf("WARNING!: Are u sure want to permanently delete this ID %d? (y/n): ", id)
+			scanner.Scan()
+			confirm := strings.ToLower(strings.TrimSpace(scanner.Text()))
+
+			if confirm != "y" {
+				fmt.Println("Delletion Canceled. Return to menu...")
+				continue //batal kembali ke menu awal
+			}
+			// panggil func DeleteProduct di repo
+			err = repository.DeleteProduct(db, id)
+			if err != nil {
+				fmt.Println("failed to delete Product:", err)
+			} else {
+				fmt.Printf("Product with ID %d has been deleted permanently from DB!\n", id)
+			}
 		case "9":
 			fmt.Println("\nList all order")
 		case "10":
