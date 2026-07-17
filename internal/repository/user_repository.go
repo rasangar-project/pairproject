@@ -197,3 +197,25 @@ func ListProducts(db *sql.DB) ([]model.Product, error) {
 
 	return products, nil
 }
+
+// UpdateProduct memperbarui data produk di database berdasarkan ID
+func UpdateProduct(db *sql.DB, id, categoryID int, name string, price int64, stock int) error {
+	query := "UPDATE products SET category_id = ?, name = ?, price = ?, stock = ? WHERE id = ?"
+
+	result, err := db.Exec(query, categoryID, name, price, stock, id)
+	if err != nil {
+		return fmt.Errorf("failed to execute the product update query: %w", err)
+	}
+
+	// Mengecek apakah ada produk yang ter-update (ID valid)
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check status update: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("The product with that ID was not found.")
+	}
+
+	return nil
+}

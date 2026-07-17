@@ -403,6 +403,78 @@ func adminMenu(scanner *bufio.Scanner, db *sql.DB) {
 			}
 		case "7":
 			fmt.Println("\nUpdate product data")
+			fmt.Print("Enter the Product ID to be updated: ")
+			scanner.Scan()
+			idStr := strings.TrimSpace(scanner.Text())
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				fmt.Println("Error: Product ID must contain number!")
+				continue
+			}
+
+			// Nampilin daftar kategori lagi sebagai panduan untuk Admin
+			categories, err := repository.GetCategories(db)
+			if err != nil || len(categories) == 0 {
+				fmt.Println("failed to load category.")
+				continue
+			}
+			fmt.Println("\nList Available Category:")
+			for _, c := range categories {
+				fmt.Printf("[%d] %s\n", c.ID, c.Name)
+			}
+
+			fmt.Print("\nChoose new ID Category: ")
+			scanner.Scan()
+			catIDStr := strings.TrimSpace(scanner.Text())
+			catID, err := strconv.Atoi(catIDStr)
+			if err != nil {
+				fmt.Println("Error: Category ID must contain number!")
+				continue
+			}
+
+			// Validasi apakah kategori yang diinput ada di database (seperti di Case 5)
+			var isCategoryValid bool
+			for _, c := range categories {
+				if c.ID == catID {
+					isCategoryValid = true
+					break
+				}
+			}
+			if !isCategoryValid {
+				fmt.Println("Error: Category ID not registered! Update cancelled.")
+				continue
+			}
+
+			fmt.Print("Name a New Product: ")
+			scanner.Scan()
+			prodName := strings.TrimSpace(scanner.Text())
+
+			fmt.Print("New Product Price (Rp): ")
+			scanner.Scan()
+			priceStr := strings.TrimSpace(scanner.Text())
+			// Gunakan ParseInt untuk BIGINT / int64
+			price, err := strconv.ParseInt(priceStr, 10, 64)
+			if err != nil {
+				fmt.Println("Error: The price must be a number (without periods or commas)!")
+				continue
+			}
+
+			fmt.Print("New Product Stock: ")
+			scanner.Scan()
+			stockStr := strings.TrimSpace(scanner.Text())
+			stock, err := strconv.Atoi(stockStr)
+			if err != nil {
+				fmt.Println("Error: Stock must be a whole number!") //Stok harus berupa angka bulat
+				continue
+			}
+
+			// Lempar semua data ke repository
+			err = repository.UpdateProduct(db, id, catID, prodName, price, stock)
+			if err != nil {
+				fmt.Println("Failed to update product:", err)
+			} else {
+				fmt.Printf("Product data with ID %d has been successfully updated.\n", id)
+			}
 		case "8":
 			fmt.Println("\nDelete Product")
 		case "9":
