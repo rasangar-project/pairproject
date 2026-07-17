@@ -35,3 +35,30 @@ func CustomerRegister(db *sql.DB, user model.User) error {
 	fmt.Printf("Successfully added customer: %s\n", user.Name)
 	return nil
 }
+
+func InsertUser(db *sql.DB, user model.User) error {
+	// The ? placeholders protect against SQL injection
+	query := "INSERT INTO users(name, email, password, phone, address,user_type) VALUES(?, ?, ?,?,?,?)"
+
+	// Query pakai model User
+	_, err := db.Exec(query, user.Name, user.Email, user.Password, user.Phone, user.Address, user.UserType)
+	if err != nil {
+		return fmt.Errorf("failed to insert customer:%w", err)
+	}
+	// sukses insert user
+	fmt.Printf("Successfully added customer: %s\n", user.Name)
+	return nil
+}
+
+func IsEmailExists(db *sql.DB, email string) bool {
+	var exists bool
+	// Query ini akan mengembalikan true (1) jika email ada, dan false (0) jika tidak ada
+	query := "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)"
+
+	err := db.QueryRow(query, email).Scan(&exists)
+	if err != nil {
+		return false // Jika error database, asumsikan belum ada agar tidak memblokir sistem
+	}
+
+	return exists
+}

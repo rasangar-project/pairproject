@@ -1,7 +1,7 @@
 
 INSERT INTO `users` (`name`, `email`, `password`, `phone`, `address`, `user_type`) VALUES
 ('Budi Santoso', 'budi.admin@kedai.co.id', 'hashed_pass_123', '081234567890', 'Jl. Sudirman No. 10, Jakarta', 'admin'),
-('Siti Aminah', 'siti.staff@kedai.co.id', 'hashed_pass_456', '085612345678', 'Jl. Melati No. 5, Surabaya', 'staff'),
+('Siti Aminah', 'siti.staff@kedai.co.id', 'hashed_pass_456', '085612345678', 'Jl. Melati No. 5, Surabaya', 'admin'),
 ('Agus Pratama', 'agus.pratama@gmail.com', 'hashed_pass_789', '081398765432', 'Jl. Merdeka No. 1, Magetan', 'customer'),
 ('Rina Wijaya', 'rina.wjy@yahoo.co.id', 'hashed_pass_000', '082188776655', 'Jl. Pahlawan No. 45, Madiun', 'customer'),
 ('Dwi Cahyono', 'dwicahyono99@gmail.com', 'hashed_pass_111', '087811223344', 'Jl. Diponegoro No. 8, Ngawi', 'customer'),

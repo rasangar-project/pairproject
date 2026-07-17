@@ -7,6 +7,7 @@ import (
 	"os"
 	"pairproject/internal/model"
 	"pairproject/internal/repository"
+	"pairproject/usecase"
 	"strings"
 )
 
@@ -75,9 +76,25 @@ func customerRegister(scanner *bufio.Scanner, db *sql.DB) {
 	fmt.Print("Nama: ")
 	scanner.Scan()
 	name := strings.TrimSpace(scanner.Text())
-	fmt.Print("Email: ")
-	scanner.Scan()
-	email := strings.TrimSpace(scanner.Text())
+	// syarat khusus untuk pengisian email
+	var email string
+	for {
+		fmt.Print("Email: ")
+		scanner.Scan()
+		email := strings.TrimSpace(scanner.Text())
+		// syarat 1 butuh @
+		if !strings.Contains(email, "@") {
+			fmt.Println("Error: format isnt valid, email must contains '@'")
+			continue //ulangi loop
+		}
+		// syarat 2 cek db apakah email sudah dipakai
+		if repository.IsEmailExists(db, email) {
+			fmt.Println("Error: Email has been registered! please use another email.")
+			continue //loop
+		}
+		break //lolos 2 syarat, lanjut ke bawah (password)
+	}
+
 	fmt.Print("Password: ")
 	scanner.Scan()
 	password := strings.TrimSpace(scanner.Text())
@@ -131,7 +148,67 @@ func adminMenu(scanner *bufio.Scanner, db *sql.DB) {
 		// hasilnya jika dipilih angka (belom gw bikin logicnya)
 		switch input {
 		case "1":
-			fmt.Println("\nCreate User")
+			fmt.Println("\nCreate a New User Account")
+			fmt.Print("Nama: ")
+			scanner.Scan()
+			name := strings.TrimSpace(scanner.Text())
+
+			var email string
+			for {
+				fmt.Print("Email: ")
+				scanner.Scan()
+				email := strings.TrimSpace(scanner.Text())
+				// syarat 1 butuh @
+				if !strings.Contains(email, "@") {
+					fmt.Println("Error: format isnt valid, email must contains '@'")
+					continue //ulangi loop
+				}
+				// syarat 2 cek db apakah email sudah dipakai
+				if repository.IsEmailExists(db, email) {
+					fmt.Println("Error: Email has been registered! please use another email.")
+					continue //loop
+				}
+				break //lolos 2 syarat, lanjut ke bawah (password)
+			}
+
+			fmt.Print("Password: ")
+			scanner.Scan()
+			password := strings.TrimSpace(scanner.Text())
+			fmt.Print("Phone: ")
+			scanner.Scan()
+			phone := strings.TrimSpace(scanner.Text())
+			fmt.Print("Address: ")
+			scanner.Scan()
+			address := strings.TrimSpace(scanner.Text())
+			// bikin validasi admin customer
+			var userType string
+			for {
+				fmt.Print("Usertype (admin / customer): ")
+				scanner.Scan()
+				// convert ke lowercase
+				userType = strings.ToLower(strings.TrimSpace(scanner.Text()))
+				// cek valid admin/customer
+				if userType == "admin" || userType == "customer" {
+					break //jika benar break lanjut ke bawah
+				}
+				fmt.Println("only input 'admin' or 'customer'")
+			}
+
+			newUser := model.User{
+				Name:     name,
+				Email:    email,
+				Password: password,
+				Phone:    phone,
+				Address:  address,
+				UserType: userType,
+			}
+			err := usecase.CreateUserUsecase(db, newUser)
+			if err != nil {
+				fmt.Println("failed to create a new user:", err)
+			} else {
+				fmt.Println("Successfully Create a User!")
+			}
+
 		case "2":
 			fmt.Println("\nShows User")
 
