@@ -241,3 +241,37 @@ func DeleteProduct(db *sql.DB, id int) error {
 
 	return nil
 }
+
+// get most frequent order case 12
+func GetMostFrequentUsers(db *sql.DB) ([]model.UserOrderReport, error) {
+	query := `
+		SELECT u.id, u.name, u.email, COUNT(o.id) as total_orders
+		FROM users u
+		JOIN orders o ON u.id = o.user_id
+		GROUP BY u.id, u.name, u.email
+		ORDER BY total_orders DESC
+		LIMIT 5
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query report: %w", err)
+	}
+	defer rows.Close()
+
+	var reports []model.UserOrderReport
+	for rows.Next() {
+		var r model.UserOrderReport
+		err := rows.Scan(&r.UserID, &r.Name, &r.Email, &r.TotalOrders)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan report: %w", err)
+		}
+		reports = append(reports, r)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return reports, nil
+}

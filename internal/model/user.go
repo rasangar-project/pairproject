@@ -23,3 +23,10 @@ type Product struct {
 	Stock        int
 	Price        int64
 }
+
+type UserOrderReport struct {
+	UserID      int
+	Name        string
+	Email       string
+	TotalOrders int
+}

@@ -511,6 +511,26 @@ func adminMenu(scanner *bufio.Scanner, db *sql.DB) {
 			fmt.Println("\nList product with the highest sales")
 		case "12":
 			fmt.Println("\nReport user with most frequent order")
+			// manggil func GetMostFrequentUsers dari repo
+			reports, err := repository.GetMostFrequentUsers(db)
+			if err != nil {
+				fmt.Println("Failed to load:", err)
+				continue
+			}
+
+			//cek tabel order jika masih kosong
+			if len(reports) == 0 {
+				fmt.Println("No data transaction on the DB")
+			} else {
+				// header tabel
+				fmt.Printf("%-5s | %-20s | %-30s | %-15s\n", "ID", "Nama Customer", "Email", "Total Orders")
+				fmt.Println(strings.Repeat("=", 90))
+				// isi tabel
+				for _, r := range reports {
+					fmt.Printf("%-5d | %-20s | %-30s | %-15d\n", r.UserID, r.Name, r.Email, r.TotalOrders)
+				}
+			}
+
 		case "0":
 			fmt.Println("\nLogging out...")
 			return
