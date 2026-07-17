@@ -8,6 +8,7 @@ import (
 	"pairproject/internal/model"
 	"pairproject/internal/repository"
 	"pairproject/usecase"
+	"strconv"
 	"strings"
 )
 
@@ -211,10 +212,11 @@ func adminMenu(scanner *bufio.Scanner, db *sql.DB) {
 
 		case "2":
 			fmt.Println("\nShow List All User Accounts")
+			// manggil func ShowUsers dari repo
 			users, err := repository.ShowUsers(db)
 			if err != nil {
 				fmt.Println("Failed to retrieve user data", err)
-				continue
+				continue //ngabaikan code di bawah, ngulang menu
 			}
 			// cek db
 			if len(users) == 0 {
@@ -231,9 +233,52 @@ func adminMenu(scanner *bufio.Scanner, db *sql.DB) {
 			}
 
 		case "3":
-			fmt.Println("\nReport Products")
+			fmt.Println("\nUpdate user account data")
+			fmt.Print("Enter the User ID to be updated: ")
+			scanner.Scan()
+			idStr := strings.TrimSpace(scanner.Text())
+
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				fmt.Println("Error: ID must contain number!")
+				continue
+			}
+
+			fmt.Print("Nama Baru: ")
+			scanner.Scan()
+			name := strings.TrimSpace(scanner.Text())
+
+			fmt.Print("Phone Baru: ")
+			scanner.Scan()
+			phone := strings.TrimSpace(scanner.Text())
+
+			fmt.Print("Address Baru: ")
+			scanner.Scan()
+			address := strings.TrimSpace(scanner.Text())
+			// validasi usertype
+			var userType string
+			for {
+				fmt.Print("Enter New Usertype (admin / customer): ")
+				scanner.Scan()
+				// convert ke lowercase
+				userType = strings.ToLower(strings.TrimSpace(scanner.Text()))
+				// cek valid admin/customer
+				if userType == "admin" || userType == "customer" {
+					break //jika benar break lanjut ke bawah
+				}
+				fmt.Println("only input 'admin' or 'customer'")
+			}
+
+			// memanggil func UpdateUser di repo
+			err = repository.UpdateUser(db, id, name, phone, address, userType)
+			if err != nil {
+				fmt.Println("Failed to Update:", err)
+			} else {
+				fmt.Printf("User Account with ID %d has been updated!\n", id)
+			}
+
 		case "4":
-			fmt.Println("\nShow Products")
+			fmt.Println("\nDelete user account")
 		case "5":
 			fmt.Println("\nShow Orders")
 		case "6":

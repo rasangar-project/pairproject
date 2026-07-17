@@ -86,3 +86,25 @@ func ShowUsers(db *sql.DB) ([]model.User, error) {
 
 	return users, nil
 }
+
+// UpdateUser memperbarui data user berdasarkan ID
+func UpdateUser(db *sql.DB, id int, name, phone, address, userType string) error {
+	query := "UPDATE users SET name = ?, phone = ?, address = ?, user_type = ? WHERE id = ?"
+
+	result, err := db.Exec(query, name, phone, address, userType, id)
+	if err != nil {
+		return fmt.Errorf("gagal mengeksekusi query update: %w", err)
+	}
+
+	// Mengecek apakah ada baris data yang berubah (ID ditemukan)
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("gagal mengecek status update: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("user dengan ID tersebut tidak ditemukan")
+	}
+
+	return nil
+}
