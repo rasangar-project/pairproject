@@ -277,8 +277,7 @@ func GetMostFrequentUsers(db *sql.DB) ([]model.UserOrderReport, error) {
 	return reports, nil
 }
 
-
-func FetchingProducts (db *sql.DB) ([]model.Product, error) {
+func FetchingProducts(db *sql.DB) ([]model.Product, error) {
 	query := "SELECT id,category_id, name, stock, price from products"
 
 	rows, err := db.Query(query)
@@ -288,12 +287,11 @@ func FetchingProducts (db *sql.DB) ([]model.Product, error) {
 
 	defer rows.Close()
 	var products []model.Product
-	
+
 	for rows.Next() {
 		var p model.Product
 
-		
-		err := rows.Scan(&p.ID, &p.CategoryID, &p.Name, &p.Stock, &p.Price )
+		err := rows.Scan(&p.ID, &p.CategoryID, &p.Name, &p.Stock, &p.Price)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
@@ -305,7 +303,6 @@ func FetchingProducts (db *sql.DB) ([]model.Product, error) {
 	}
 	return products, nil
 }
-
 
 func CheckValidProductId(db *sql.DB, id int) bool {
 	var exists bool
@@ -329,12 +326,11 @@ func FetchProductAddOn(db *sql.DB, product_id int) ([]model.Add_on, error) {
 
 	defer rows.Close()
 	var add_ons []model.Add_on
-	
+
 	for rows.Next() {
 		var a model.Add_on
 
-		
-		err := rows.Scan(&a.ID, &a.Name, &a.Price )
+		err := rows.Scan(&a.ID, &a.Name, &a.Price)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
@@ -344,10 +340,8 @@ func FetchProductAddOn(db *sql.DB, product_id int) ([]model.Add_on, error) {
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	return add_ons, nil	
+	return add_ons, nil
 }
-
-
 
 func ChecksValidAddOn(db *sql.DB, product_id int, add_on_id int) bool {
 	var connected bool
@@ -361,8 +355,7 @@ func ChecksValidAddOn(db *sql.DB, product_id int, add_on_id int) bool {
 	return connected
 }
 
-
-func GetProductPrice (db *sql.DB, product_id int) (int, error) {
+func GetProductPrice(db *sql.DB, product_id int) (int, error) {
 	query := "SELECT price FROM products WHERE id = ?"
 	var price int
 	err := db.QueryRow(query, product_id).Scan(&price)
@@ -381,7 +374,7 @@ func GetAddOnPrice(db *sql.DB, add_on_id int) (int, error) {
 	return price, nil
 }
 
-func FetchPaymentMethod(db *sql.DB)([]model.Payments_method, error) {
+func FetchPaymentMethod(db *sql.DB) ([]model.Payments_method, error) {
 	query := "SELECT * FROM payments_method"
 
 	rows, err := db.Query(query)
@@ -391,12 +384,11 @@ func FetchPaymentMethod(db *sql.DB)([]model.Payments_method, error) {
 
 	defer rows.Close()
 	var payments_method []model.Payments_method
-	
+
 	for rows.Next() {
 		var p model.Payments_method
 
-		
-		err := rows.Scan(&p.ID, &p.Name )
+		err := rows.Scan(&p.ID, &p.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
@@ -406,10 +398,10 @@ func FetchPaymentMethod(db *sql.DB)([]model.Payments_method, error) {
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	return payments_method, nil	
+	return payments_method, nil
 }
 
-func CheckPayMethodValid (db *sql.DB, pay_id int) bool {
+func CheckPayMethodValid(db *sql.DB, pay_id int) bool {
 	var exists bool
 	query := `SELECT EXISTS(SELECT 1 FROM payments_method WHERE id = ?)`
 
@@ -421,8 +413,7 @@ func CheckPayMethodValid (db *sql.DB, pay_id int) bool {
 	return exists
 }
 
-
-func GetProductName (db *sql.DB, product_id int) (string, error) {
+func GetProductName(db *sql.DB, product_id int) (string, error) {
 	query := "SELECT name FROM products WHERE id = ?"
 	var product_name string
 	err := db.QueryRow(query, product_id).Scan(&product_name)
@@ -432,7 +423,7 @@ func GetProductName (db *sql.DB, product_id int) (string, error) {
 	return product_name, nil
 }
 
-func GetAddOnName(db *sql.DB, add_onId int)(string, error) {
+func GetAddOnName(db *sql.DB, add_onId int) (string, error) {
 	query := "SELECT name FROM add_ons WHERE id = ?"
 	var add_onName string
 	err := db.QueryRow(query, add_onId).Scan(&add_onName)
@@ -442,13 +433,11 @@ func GetAddOnName(db *sql.DB, add_onId int)(string, error) {
 	return add_onName, nil
 }
 
-
-func CreatingOrdersDB(db *sql.DB, customerID int, totalAmount int, paymentMethod int, order_items []model.Order_items ) error{
+func CreatingOrdersDB(db *sql.DB, customerID int, totalAmount int, paymentMethod int, order_items []model.Order_items) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-
 
 	defer tx.Rollback()
 
@@ -462,28 +451,27 @@ func CreatingOrdersDB(db *sql.DB, customerID int, totalAmount int, paymentMethod
 	if err != nil {
 		return fmt.Errorf("failed to get last insert ID: %w", err)
 	}
-	orderID := int(orderID64) 
+	orderID := int(orderID64)
 
 	itemQuery := `INSERT INTO order_items (order_id, product_id, add_on_id, quantity, unit_price, subtotal, note) 
 	              VALUES (?, ?, ?, ?, ?, ?, ?)`
 	updateStockQuery := `UPDATE products Set stock = stock - ? WHERE id = ? AND stock >= ?`
 
-	
 	for _, item := range order_items {
 		if item.Add_on_id == 0 {
 			_, err := tx.Exec(itemQuery, orderID, item.Product_id, nil, item.Quantity, item.Unit_price, item.Subtotal, item.Note)
 			if err != nil {
-			return fmt.Errorf("failed to insert order item for product %d: %w", item.Product_id, err)
+				return fmt.Errorf("failed to insert order item for product %d: %w", item.Product_id, err)
 			}
 		} else {
-		_, err := tx.Exec(itemQuery, orderID, item.Product_id, item.Add_on_id, item.Quantity, item.Unit_price, item.Subtotal, item.Note)
-		if err != nil {
-			return fmt.Errorf("failed to insert order item for product %d: %w", item.Product_id, err)
+			_, err := tx.Exec(itemQuery, orderID, item.Product_id, item.Add_on_id, item.Quantity, item.Unit_price, item.Subtotal, item.Note)
+			if err != nil {
+				return fmt.Errorf("failed to insert order item for product %d: %w", item.Product_id, err)
 			}
 		}
 		_, err := tx.Exec(updateStockQuery, item.Quantity, item.Product_id, item.Quantity)
 		if err != nil {
-			return fmt.Errorf("failed to execute stock update: %w",err)
+			return fmt.Errorf("failed to execute stock update: %w", err)
 		}
 	}
 
@@ -501,10 +489,7 @@ func CreatingOrdersDB(db *sql.DB, customerID int, totalAmount int, paymentMethod
 	return nil
 }
 
-
-
-
-func GetUserHistory (db *sql.DB, customerID int) ([]model.UserHistory, error) {
+func GetUserHistory(db *sql.DB, customerID int) ([]model.UserHistory, error) {
 	query := "select o.id as order_id, p.name as product_name, oi.quantity as quantity, oi.subtotal as subtotal from order_items as oi join orders o ON o.id = oi.order_id join products p on p.id = oi.product_id left join add_ons a ON oi.add_on_id = a.id where o.user_id = ?;"
 
 	rows, err := db.Query(query, customerID)
@@ -514,12 +499,11 @@ func GetUserHistory (db *sql.DB, customerID int) ([]model.UserHistory, error) {
 
 	defer rows.Close()
 	var userHistory []model.UserHistory
-	
+
 	for rows.Next() {
 		var u model.UserHistory
 
-		
-		err := rows.Scan(&u.OrderID, &u.ProductName, &u.Quantity, &u.Subtotal )
+		err := rows.Scan(&u.OrderID, &u.ProductName, &u.Quantity, &u.Subtotal)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
@@ -529,16 +513,67 @@ func GetUserHistory (db *sql.DB, customerID int) ([]model.UserHistory, error) {
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	return userHistory, nil	
+	return userHistory, nil
 }
 
-
-func GenerateTotalRevenue(db *sql.DB)(model.TotalRevenue , error) {
+func GenerateTotalRevenue(db *sql.DB) (model.TotalRevenue, error) {
 	query := "SELECT SUM(o.total_amount) AS total_revenue FROM orders o JOIN payments p ON o.id = p.order_id WHERE p.status = 'Paid'"
 	var revenue model.TotalRevenue
-	err := db.QueryRow(query).Scan(&revenue.Revenue)
+	err := db.QueryRow(query).Scan(&revenue.Revenue) //minor bug tampilan {}
 	if err != nil {
 		return revenue, err
 	}
 	return revenue, nil
+}
+
+// ListAllOrders mengambil semua daftar order digabung dengan nama user (case 9 adminMenu)
+func ListAllOrders(db *sql.DB) ([]model.OrderDetail, error) {
+	query := `
+		SELECT o.id, u.name, o.status, o.total_amount 
+		FROM orders o 
+		JOIN users u ON o.user_id = u.id 
+		ORDER BY o.id DESC
+	`
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch orders: %w", err)
+	}
+	defer rows.Close()
+
+	var orders []model.OrderDetail
+	for rows.Next() {
+		var o model.OrderDetail
+		if err := rows.Scan(&o.ID, &o.CustomerName, &o.Status, &o.TotalAmount); err != nil {
+			return nil, err
+		}
+		orders = append(orders, o)
+	}
+	return orders, nil
+}
+
+// GetHighestSalesProducts menampilkan top 5 produk paling laris (case 11 adminMenu)
+func GetHighestSalesProducts(db *sql.DB) ([]model.ProductSales, error) {
+	query := `
+		SELECT p.name, SUM(oi.quantity) as sales
+		FROM order_items oi
+		JOIN products p ON oi.product_id = p.id
+		GROUP BY p.id, p.name
+		ORDER BY sales DESC
+		LIMIT 5
+	`
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch highest sales: %w", err)
+	}
+	defer rows.Close()
+
+	var sales []model.ProductSales
+	for rows.Next() {
+		var s model.ProductSales
+		if err := rows.Scan(&s.Name, &s.Sales); err != nil {
+			return nil, err
+		}
+		sales = append(sales, s)
+	}
+	return sales, nil
 }

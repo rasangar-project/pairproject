@@ -507,10 +507,40 @@ func adminMenu(scanner *bufio.Scanner, db *sql.DB) {
 			}
 		case "9":
 			fmt.Println("\nList all order")
+			orders, err := repository.ListAllOrders(db)
+			if err != nil {
+				fmt.Println("Error loading order:", err)
+				continue
+			}
+
+			if len(orders) == 0 {
+				fmt.Println("No transactions yet.")
+			} else {
+				fmt.Printf("%-5s | %-20s | %-15s | %-15s\n", "ID", "Customer Name", "Status", "Total Amount")
+				fmt.Println(strings.Repeat("-", 65))
+				for _, o := range orders {
+					fmt.Printf("%-5d | %-20s | %-15s | Rp.%-12d\n", o.ID, o.CustomerName, o.Status, o.TotalAmount)
+				}
+			}
 		case "10":
 			displayRevenue(db)
 		case "11":
 			fmt.Println("\nList product with the highest sales")
+			topProducts, err := repository.GetHighestSalesProducts(db)
+			if err != nil {
+				fmt.Println("Error loading data:", err)
+				continue
+			}
+
+			if len(topProducts) == 0 {
+				fmt.Println("No products have been sold yet.")
+			} else {
+				fmt.Printf("%-30s | %-15s\n", "Product's Name", "Total Sold")
+				fmt.Println(strings.Repeat("-", 48))
+				for _, t := range topProducts {
+					fmt.Printf("%-30s | %-15d pcs\n", t.Name, t.Sales)
+				}
+			}
 		case "12":
 			fmt.Println("\nReport user with most frequent order")
 			// manggil func GetMostFrequentUsers dari repo
@@ -595,42 +625,39 @@ func customerMenu(scanner *bufio.Scanner, db *sql.DB, customerID int) {
 	}
 }
 
-
-
 // push arjun func customer
 func displayAllProducts(db *sql.DB) {
-	products,err := repository.FetchingProducts(db)
+	products, err := repository.FetchingProducts(db)
 	if err != nil {
-	fmt.Println("Error Fetching Products:",err)
+		fmt.Println("Error Fetching Products:", err)
 		return
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	fmt.Fprintln(w, "ID\tName\tStocks\tPrice")
 	fmt.Fprintln(w, "--\t-----\t-----\t-------")
-	for _,p := range products {
-		fmt.Fprintf(w,"%d\t%s\t%d\tRp.%d\n", p.ID, p.Name, p.Stock, p.Price)
+	for _, p := range products {
+		fmt.Fprintf(w, "%d\t%s\t%d\tRp.%d\n", p.ID, p.Name, p.Stock, p.Price)
 	}
 	w.Flush()
 }
 
-
 func displayAddOns(db *sql.DB, product_id int) {
-	add_ons, err := repository.FetchProductAddOn(db,product_id)
+	add_ons, err := repository.FetchProductAddOn(db, product_id)
 	if err != nil {
-		fmt.Println("Error Fetching Products:",err)
+		fmt.Println("Error Fetching Products:", err)
 		return
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	fmt.Fprintln(w, "ID\tName\tPrice")
 	fmt.Fprintln(w, "--\t-----\t-----")
-	for _,a := range add_ons {
-		fmt.Fprintf(w,"%d\t%s\tRp.%d\n", a.ID, a.Name, a.Price)
+	for _, a := range add_ons {
+		fmt.Fprintf(w, "%d\t%s\tRp.%d\n", a.ID, a.Name, a.Price)
 	}
 	w.Flush()
 }
 
-func countOrderSubtotal(add_onPrice int, productPrice int, quantity int ) int{
+func countOrderSubtotal(add_onPrice int, productPrice int, quantity int) int {
 	pricePerProduct := add_onPrice + productPrice
 	subtotal := pricePerProduct * quantity
 	return subtotal
@@ -639,17 +666,17 @@ func countOrderSubtotal(add_onPrice int, productPrice int, quantity int ) int{
 func makeOrders(db *sql.DB, scanner *bufio.Scanner) ([]model.Order_items, error) {
 	var order_item []model.Order_items
 	for {
-		displayAllProducts(db)		
-		var(
-			product_id int
-			add_on_id int
-			quantity int
-			unit_price int
-			subtotal int
+		displayAllProducts(db)
+		var (
+			product_id  int
+			add_on_id   int
+			quantity    int
+			unit_price  int
+			subtotal    int
 			add_onPrice int
-			note string
+			note        string
 		)
-			
+
 		fmt.Println("Enter products ID you want to order ->")
 		scanner.Scan()
 		inputProduct := strings.TrimSpace(scanner.Text())
@@ -675,8 +702,8 @@ func makeOrders(db *sql.DB, scanner *bufio.Scanner) ([]model.Order_items, error)
 			add_on_id = inputAddOnNum
 			add_onPrice, err = repository.GetAddOnPrice(db, add_on_id)
 			if err != nil {
-			fmt.Println("fetching Add on price failed! please try again", err)
-			continue
+				fmt.Println("fetching Add on price failed! please try again", err)
+				continue
 			}
 		} else {
 			fmt.Println("your add on id is invalid! please try again")
@@ -688,7 +715,7 @@ func makeOrders(db *sql.DB, scanner *bufio.Scanner) ([]model.Order_items, error)
 		inputQuantity := strings.TrimSpace(scanner.Text())
 		inputQuantityNum, err := strconv.Atoi(inputQuantity)
 		quantity = inputQuantityNum
-		unit_price,err = repository.GetProductPrice(db, product_id)
+		unit_price, err = repository.GetProductPrice(db, product_id)
 		if err != nil {
 			fmt.Println("fetching product price failed! please try again", err)
 			continue
@@ -696,11 +723,11 @@ func makeOrders(db *sql.DB, scanner *bufio.Scanner) ([]model.Order_items, error)
 		subtotal = countOrderSubtotal(add_onPrice, unit_price, quantity)
 		fmt.Println("Leave a note for your order:")
 		scanner.Scan()
-		note = strings.TrimSpace(scanner.Text())	
+		note = strings.TrimSpace(scanner.Text())
 
-		order_item = append(order_item, model.Order_items{Product_id: product_id, Add_on_id : add_on_id, Quantity: quantity, Unit_price: unit_price, Subtotal: subtotal, Note: note})
+		order_item = append(order_item, model.Order_items{Product_id: product_id, Add_on_id: add_on_id, Quantity: quantity, Unit_price: unit_price, Subtotal: subtotal, Note: note})
 		var again string
-		for{
+		for {
 			fmt.Println("do you want to add another product to your order? Y/N")
 			scanner.Scan()
 			inputAgain := strings.ToLower(strings.TrimSpace(scanner.Text()))
@@ -710,32 +737,31 @@ func makeOrders(db *sql.DB, scanner *bufio.Scanner) ([]model.Order_items, error)
 			} else {
 				fmt.Println("invalid input")
 			}
-		} 
-		if again == "n"	{
+		}
+		if again == "n" {
 			break
-		}	
+		}
 	}
-	return order_item, nil	
+	return order_item, nil
 }
 
-
-func displayPayMethod (db *sql.DB) {
+func displayPayMethod(db *sql.DB) {
 	pay_method, err := repository.FetchPaymentMethod(db)
 	if err != nil {
-		fmt.Println("Error Fetching Products:",err)
+		fmt.Println("Error Fetching Products:", err)
 		return
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	fmt.Fprintln(w, "ID\tName")
 	fmt.Fprintln(w, "--\t-----")
-	for _,p := range pay_method {
-		fmt.Fprintf(w,"%d\t%s\n", p.ID, p.Name)
+	for _, p := range pay_method {
+		fmt.Fprintf(w, "%d\t%s\n", p.ID, p.Name)
 	}
 	w.Flush()
 }
 
-func choosePaymentMethod(db *sql.DB, scanner *bufio.Scanner) int{
+func choosePaymentMethod(db *sql.DB, scanner *bufio.Scanner) int {
 	var payMethodId int
 	fmt.Println("Choose your payment method ->")
 	for {
@@ -743,10 +769,10 @@ func choosePaymentMethod(db *sql.DB, scanner *bufio.Scanner) int{
 		inputMethod := strings.TrimSpace(scanner.Text())
 		payMethodNum, err := strconv.Atoi(inputMethod)
 		if err != nil {
-		fmt.Println("Conversion failed! The input is not a valid number:", err)
-		continue
-		} 
-		if repository.CheckPayMethodValid(db,payMethodNum) {
+			fmt.Println("Conversion failed! The input is not a valid number:", err)
+			continue
+		}
+		if repository.CheckPayMethodValid(db, payMethodNum) {
 			payMethodId = payMethodNum
 			break
 		}
@@ -759,7 +785,7 @@ func displayOverallOrder(db *sql.DB, order_items []model.Order_items) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	fmt.Fprintln(w, "Name\tQuantity\tAdd on\tPrice")
 	fmt.Fprintln(w, "-----\t-----\t-------\t------")
-	
+
 	for _, item := range order_items {
 		productName, err := repository.GetProductName(db, item.Product_id)
 		if err != nil {
@@ -775,7 +801,7 @@ func displayOverallOrder(db *sql.DB, order_items []model.Order_items) {
 				addOnName = ""
 			}
 		}
-		fmt.Fprintf(w,"%s\t%d\t%s\tRp.%d\n", productName, item.Quantity, addOnName, item.Subtotal)
+		fmt.Fprintf(w, "%s\t%d\t%s\tRp.%d\n", productName, item.Quantity, addOnName, item.Subtotal)
 	}
 	w.Flush()
 }
@@ -783,7 +809,7 @@ func displayOverallOrder(db *sql.DB, order_items []model.Order_items) {
 func orderConfirmation(scanner *bufio.Scanner) bool {
 	var confirmInput bool
 	fmt.Println("Type 'confirm' to confirm your order or 'cancel' to cancel your order ")
-	
+
 	for {
 		scanner.Scan()
 		input := strings.TrimSpace(scanner.Text())
@@ -794,15 +820,14 @@ func orderConfirmation(scanner *bufio.Scanner) bool {
 		} else if formattedInput == "cancel" {
 			confirmInput = false
 			break
-		}else {
+		} else {
 			fmt.Println("invalid input, please input correct option")
 			continue
 		}
-		
+
 	}
 	return confirmInput
 }
-
 
 func sumOrderPrice(order_items []model.Order_items) int {
 	var totalPrice int
@@ -813,29 +838,28 @@ func sumOrderPrice(order_items []model.Order_items) int {
 	return totalPrice
 }
 
-
-func displayUserHistory(db *sql.DB, customerID int ) {
-	userHistory,err := repository.GetUserHistory(db, customerID)
+func displayUserHistory(db *sql.DB, customerID int) {
+	userHistory, err := repository.GetUserHistory(db, customerID)
 	if err != nil {
-	fmt.Println("Error Fetching Products:",err)
+		fmt.Println("Error Fetching Products:", err)
 		return
 	}
 	fmt.Println("here is your order history")
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	fmt.Fprintln(w, "Product Name\tQuantity\tPrice")
 	fmt.Fprintln(w, "--------------\t---------\t------")
-	for _,u := range userHistory {
-		fmt.Fprintf(w,"%s\t%d\tRp.%d\n", u.ProductName, u.Quantity, u.Subtotal )
+	for _, u := range userHistory {
+		fmt.Fprintf(w, "%s\t%d\tRp.%d\n", u.ProductName, u.Quantity, u.Subtotal)
 	}
 	w.Flush()
 }
 
-func displayRevenue (db *sql.DB) {
+func displayRevenue(db *sql.DB) {
 	revenue, err := repository.GenerateTotalRevenue(db)
 	if err != nil {
 		fmt.Println("error generating revenue:", err)
 		return
 	}
 	fmt.Printf(" **TOTAL REALIZED REVENUE** \n")
-	fmt.Printf(" Rp.%d\n", revenue)
+	fmt.Printf(" Rp.%d\n", revenue.Revenue)
 }

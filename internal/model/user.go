@@ -86,5 +86,13 @@ type TotalRevenue struct {
 
 type ProductSales struct {
 	Name  string
-	sales int
+	Sales int
+}
+
+// untuk case 9 List All Order (adminMenu)
+type OrderDetail struct {
+	ID           int
+	CustomerName string
+	Status       string
+	TotalAmount  int
 }
